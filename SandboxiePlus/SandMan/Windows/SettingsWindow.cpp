@@ -49,6 +49,7 @@ void FixTriStateBoxPallete(QWidget* pWidget)
 
 void AddIconToLabel(QLabel* pLabel, const QPixmap& Pixmap)
 {
+	if (pLabel->property("hidden").toBool()) return;
 	QWidget* pParent = pLabel->parentWidget();
 	QWidget* pWidget = new QWidget(pParent);
 	pParent->layout()->replaceWidget(pLabel, pWidget);
@@ -313,6 +314,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.chkNotifyRecovery, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkShowRecovery, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkCheckDelete, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkRecoveryTop, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	//
 
@@ -428,6 +430,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.btnSetPassword, SIGNAL(clicked(bool)), this, SLOT(OnSetPassword()));
 	connect(ui.chkAdminOnlyFP, SIGNAL(stateChanged(int)), this, SLOT(OnProtectionChange()));
 	connect(ui.chkClearPass, SIGNAL(stateChanged(int)), this, SLOT(OnProtectionChange()));
+	
 	m_ProtectionChanged = false;
 	//
 	
@@ -478,6 +481,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.lblSupport, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 	connect(ui.lblSupportCert, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 	connect(ui.lblCertExp, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
+	connect(ui.lblCertGuide, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 	connect(ui.lblInsiderInfo, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 
 	m_CertChanged = false;
@@ -908,6 +912,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkSandboxUrls->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/OpenUrlsSandboxed", 2)));
 
 	ui.chkShowRecovery->setChecked(theConf->GetBool("Options/ShowRecovery", false));
+	ui.chkCheckDelete->setChecked(theConf->GetBool("Options/CleanUpOnStart", false));
 	ui.chkNotifyRecovery->setChecked(!theConf->GetBool("Options/InstantRecovery", true));
 	ui.chkRecoveryTop->setChecked(theConf->GetBool("Options/RecoveryOnTop", true));
 	ui.chkAsyncBoxOps->setChecked(theConf->GetBool("Options/UseAsyncBoxOps", false));
@@ -922,7 +927,7 @@ void CSettingsWindow::LoadSettings()
 	ui.keyPauseForce->setKeySequence(QKeySequence(theConf->GetString("Options/PauseForceKeySequence", "Ctrl+Alt+F")));
 
 	ui.chkSuspend->setChecked(theConf->GetBool("Options/EnableSuspendKey", false));
-	ui.keySuspend->setKeySequence(QKeySequence(theConf->GetString("Options/SuspendKeySequence", "Ctrl+Pause")));
+	ui.keySuspend->setKeySequence(QKeySequence(theConf->GetString("Options/SuspendKeySequence", "Shift+Alt+Pause")));
 
 	ui.chkMonitorSize->setChecked(theConf->GetBool("Options/WatchBoxSize", false));
 
@@ -1557,6 +1562,8 @@ void CSettingsWindow::SaveSettings()
 
 	theConf->SetValue("Options/EnableSuspendKey", ui.chkSuspend->isChecked());
 	theConf->SetValue("Options/SuspendKeySequence", ui.keySuspend->keySequence().toString());
+
+	theConf->SetValue("Options/CleanUpOnStart", ui.chkCheckDelete->isChecked());
 
 	theConf->SetValue("Options/WatchBoxSize", ui.chkMonitorSize->isChecked());
 

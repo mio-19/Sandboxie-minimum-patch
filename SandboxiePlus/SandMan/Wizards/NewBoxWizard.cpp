@@ -176,6 +176,20 @@ SB_STATUS CNewBoxWizard::TryToCreateBox()
         if(field("imagesProtection").toBool())
             pBox->SetBool("ProtectHostImages", true);
 
+        QString templateName = "SharedTemplate";
+        QString templateFullName = QString("Template_Local_%1").arg(templateName);
+        QString templateSettings = theAPI->SbieIniGetEx(templateFullName, "");
+        QString templateComment = tr("Add your settings after this line.");
+
+        if (field("sharedTemplate").toBool()) {
+            if (templateSettings.isNull()) {
+                QString templateBase = QString("Tmpl.Title=%1\r\nTmpl.Class=Local\r\nTmpl.Comment=%2\r\n").arg(templateName, templateComment);
+                theAPI->SbieIniSet(templateFullName, "", templateBase);
+            }
+            QString insertValue = templateFullName.replace("Template_", "");
+            pBox->InsertText("Template", insertValue);
+        }
+
         if (!Password.isEmpty())
             pBox->ImBoxCreate(ImageSize / 1024, Password);
 
@@ -671,12 +685,20 @@ CAdvancedPage::CAdvancedPage(QWidget *parent)
     layout->addWidget(m_pBoxToken, row++, 1, 1, 3);
     registerField("boxToken", m_pBoxToken);
 
-    QCheckBox* pImageProtection = new QCheckBox(tr("Prevent sandboxes programs installed on host from loading dll's from the sandbox"));
+    QCheckBox* pImageProtection = new QCheckBox(tr("Prevent sandboxed programs installed on the host from loading DLLs from the sandbox"));
     pImageProtection->setToolTip(tr("This feature may reduce compatibility as it also prevents box located processes from writing to host located ones and even starting them."));
     pImageProtection->setChecked(theConf->GetBool("BoxDefaults/ImagesProtection", false));
     pImageProtection->setEnabled(g_CertInfo.active);
     layout->addWidget(pImageProtection, row++, 1, 1, 3);
     registerField("imagesProtection", pImageProtection);
+
+    QCheckBox* pSharedTemplate = new QCheckBox(tr("Use a shared local template"));
+    pSharedTemplate->setToolTip(tr("This setting adds a local template to the sandbox configuration so that the settings in that template are shared between sandboxes. However, some settings added to the template may not be reflected in the user interface."
+	"\nTo change the template's settings, simply locate and edit the 'SharedTemplate' template in the App Templates list under Sandbox Options."
+	"\nTo disable this template for a sandbox, simply uncheck it in the template list."));
+    pSharedTemplate->setChecked(theConf->GetBool("BoxDefaults/SharedTemplate", false));
+    layout->addWidget(pSharedTemplate, row++, 1, 1, 3);
+    registerField("sharedTemplate", pSharedTemplate);
 
     setLayout(layout);
 
@@ -809,6 +831,7 @@ bool CSummaryPage::validatePage()
 
         theConf->SetValue("BoxDefaults/BoxToken", field("boxToken").toBool());
         theConf->SetValue("BoxDefaults/ImagesProtection", field("imagesProtection").toBool());
+        theConf->SetValue("BoxDefaults/SharedTemplate", field("sharedTemplate").toBool());
     }
 
     theConf->SetValue("Options/InstantBoxWizard", m_pSetInstant->isChecked());
